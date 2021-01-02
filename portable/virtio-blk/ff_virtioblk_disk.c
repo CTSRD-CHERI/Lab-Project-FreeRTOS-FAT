@@ -48,30 +48,30 @@
 #include "helpers.h"
 
 #ifdef __CHERI_PURE_CAPABILITY__
-#include <cheri/cheri-utility.h>
+    #include <cheri/cheri-utility.h>
 #endif
 
 /* The size of each sector on the disk. */
-#define virtio_blkSECTOR_SIZE                512UL
+#define virtio_blkSECTOR_SIZE            512UL
 
 /* Only a single partition is used.  Partition numbers start at 0. */
-#define virtio_blkPARTITION_NUMBER            0
-#define virtio_blkHIDDEN_SECTOR_COUNT      8
-#define virtio_blkPRIMARY_PARTITIONS       1
-#define virtio_blkHUNDRED_64_BIT           100ULL
-#define virtio_blkSECTOR_SIZE              512UL
-#define virtio_blkBYTES_PER_KB             ( 1024ull )
-#define virtio_blkSECTORS_PER_KB           ( virtio_blkBYTES_PER_KB / 512ull )
+#define virtio_blkPARTITION_NUMBER       0
+#define virtio_blkHIDDEN_SECTOR_COUNT    8
+#define virtio_blkPRIMARY_PARTITIONS     1
+#define virtio_blkHUNDRED_64_BIT         100ULL
+#define virtio_blkSECTOR_SIZE            512UL
+#define virtio_blkBYTES_PER_KB           ( 1024ull )
+#define virtio_blkSECTORS_PER_KB         ( virtio_blkBYTES_PER_KB / 512ull )
 
-BaseType_t FF_VirtIODiskShowPartition( FF_Disk_t *pxDisk )
+BaseType_t FF_VirtIODiskShowPartition( FF_Disk_t * pxDisk )
 {
-FF_Error_t xError;
-uint64_t ullFreeSectors;
-uint32_t ulTotalSizeKB, ulFreeSizeKB;
-int iPercentageFree;
-FF_IOManager_t *pxIOManager;
-const char *pcTypeName = "unknown type";
-BaseType_t xReturn = pdPASS;
+    FF_Error_t xError;
+    uint64_t ullFreeSectors;
+    uint32_t ulTotalSizeKB, ulFreeSizeKB;
+    int iPercentageFree;
+    FF_IOManager_t * pxIOManager;
+    const char * pcTypeName = "unknown type";
+    BaseType_t xReturn = pdPASS;
 
     if( pxDisk == NULL )
     {
@@ -105,21 +105,22 @@ BaseType_t xReturn = pdPASS;
         FF_GetFreeSize( pxIOManager, &xError );
 
         ullFreeSectors = pxIOManager->xPartition.ulFreeClusterCount * pxIOManager->xPartition.ulSectorsPerCluster;
-        if( pxIOManager->xPartition.ulDataSectors == ( uint32_t )0 )
+
+        if( pxIOManager->xPartition.ulDataSectors == ( uint32_t ) 0 )
         {
             iPercentageFree = 0;
         }
         else
         {
             iPercentageFree = ( int ) ( ( virtio_blkHUNDRED_64_BIT * ullFreeSectors + pxIOManager->xPartition.ulDataSectors / 2 ) /
-                ( ( uint64_t )pxIOManager->xPartition.ulDataSectors ) );
+                                        ( ( uint64_t ) pxIOManager->xPartition.ulDataSectors ) );
         }
 
         ulTotalSizeKB = pxIOManager->xPartition.ulDataSectors / virtio_blkSECTORS_PER_KB;
         ulFreeSizeKB = ( uint32_t ) ( ullFreeSectors / virtio_blkSECTORS_PER_KB );
 
         /* It is better not to use the 64-bit format such as %Lu because it
-        might not be implemented. */
+         * might not be implemented. */
         FF_PRINTF( "Partition Nr   %8u\n", pxDisk->xStatus.bPartitionNumber );
         FF_PRINTF( "Type           %8u (%s)\n", pxIOManager->xPartition.ucType, pcTypeName );
         FF_PRINTF( "VolLabel       '%8s' \n", pxIOManager->xPartition.pcVolumeLabel );
@@ -133,10 +134,10 @@ BaseType_t xReturn = pdPASS;
 }
 /*-----------------------------------------------------------*/
 
-static FF_Error_t prvPartitionAndFormatDisk( FF_Disk_t *pxDisk )
+static FF_Error_t prvPartitionAndFormatDisk( FF_Disk_t * pxDisk )
 {
-FF_PartitionParameters_t xPartition;
-FF_Error_t xError;
+    FF_PartitionParameters_t xPartition;
+    FF_Error_t xError;
 
     /* Create a single partition that fills all available space on the disk. */
     memset( &xPartition, '\0', sizeof( xPartition ) );
@@ -160,12 +161,13 @@ FF_Error_t xError;
 }
 /*-----------------------------------------------------------*/
 
-BaseType_t FF_VirtIODiskDelete( FF_Disk_t *pxDisk )
+BaseType_t FF_VirtIODiskDelete( FF_Disk_t * pxDisk )
 {
     if( pxDisk != NULL )
     {
         pxDisk->ulSignature = 0;
         pxDisk->xStatus.bIsInitialised = 0;
+
         if( pxDisk->pxIOManager != NULL )
         {
             FF_DeleteIOManager( pxDisk->pxIOManager );
@@ -178,95 +180,105 @@ BaseType_t FF_VirtIODiskDelete( FF_Disk_t *pxDisk )
 }
 /*-----------------------------------------------------------*/
 
-static int32_t prvReadVirtIO( uint8_t *pucDestination,
-                           uint32_t ulSectorNumber,
-                           uint32_t ulSectorCount,
-                           FF_Disk_t *pxDisk )
+static int32_t prvReadVirtIO( uint8_t * pucDestination,
+                              uint32_t ulSectorNumber,
+                              uint32_t ulSectorCount,
+                              FF_Disk_t * pxDisk )
 {
-size_t cnt;
+    size_t cnt;
+
     /* The FF_Disk_t structure describes the media being accessed.  Attributes that
-    are common to all media types are stored in the structure directly.  The pvTag
-    member of the structure is used to add attributes that are specific to the media
-    actually being accessed.  In the case of the VirtIO disk the pvTag member is
-    used to point to the virtio_device being used as the disk. */
+     * are common to all media types are stored in the structure directly.  The pvTag
+     * member of the structure is used to add attributes that are specific to the media
+     * actually being accessed.  In the case of the VirtIO disk the pvTag member is
+     * used to point to the virtio_device being used as the disk. */
 
-    cnt = virtioblk_transfer((struct virtio_device *) pxDisk->pvTag, pucDestination, ulSectorNumber, ulSectorCount, VIRTIO_BLK_T_IN);
+    cnt = virtioblk_transfer( ( struct virtio_device * ) pxDisk->pvTag, pucDestination, ulSectorNumber, ulSectorCount, VIRTIO_BLK_T_IN );
 
-    if (cnt == ulSectorCount)
+    if( cnt == ulSectorCount )
+    {
         return FF_ERR_NONE;
+    }
     else
+    {
         return FF_ERR_DEVICE_DRIVER_FAILED;
+    }
 }
 /*-----------------------------------------------------------*/
 
-static int32_t prvWriteVirtIO( uint8_t *pucSource,
-                            uint32_t ulSectorNumber,
-                            uint32_t ulSectorCount,
-                            FF_Disk_t *pxDisk )
+static int32_t prvWriteVirtIO( uint8_t * pucSource,
+                               uint32_t ulSectorNumber,
+                               uint32_t ulSectorCount,
+                               FF_Disk_t * pxDisk )
 {
-size_t cnt;
+    size_t cnt;
 
     /* The FF_Disk_t structure describes the media being accessed.  Attributes that
-    are common to all media types are stored in the structure directly.  The pvTag
-    member of the structure is used to add attributes that are specific to the media
-    actually being accessed.  In the case of the VirtIO disk the pvTag member is
-    used to point to the virtio_device being used as the disk. */
+     * are common to all media types are stored in the structure directly.  The pvTag
+     * member of the structure is used to add attributes that are specific to the media
+     * actually being accessed.  In the case of the VirtIO disk the pvTag member is
+     * used to point to the virtio_device being used as the disk. */
 
     /* Copy the data to the disk. */
-    cnt = virtioblk_transfer((struct virtio_device *) pxDisk->pvTag, pucSource, ulSectorNumber, ulSectorCount, VIRTIO_BLK_T_OUT);
+    cnt = virtioblk_transfer( ( struct virtio_device * ) pxDisk->pvTag, pucSource, ulSectorNumber, ulSectorCount, VIRTIO_BLK_T_OUT );
 
-    if (cnt == ulSectorCount)
+    if( cnt == ulSectorCount )
+    {
         return FF_ERR_NONE;
+    }
     else
+    {
         return FF_ERR_DEVICE_DRIVER_FAILED;
+    }
 }
 /*-----------------------------------------------------------*/
 
 /*
-  – pcName is the name to give the disk within FreeRTOS+FAT’s virtual file system.
-  – xIOManagerCacheSize is the size of the IO manager’s cache, which must be a
-   multiple of the sector size, and at least twice as big as the sector size.
-*/
-FF_Disk_t *FF_VirtIODiskInit( char *pcName,
-                              size_t xIOManagerCacheSize )
+ * – pcName is the name to give the disk within FreeRTOS+FAT’s virtual file system.
+ * – xIOManagerCacheSize is the size of the IO manager’s cache, which must be a
+ * multiple of the sector size, and at least twice as big as the sector size.
+ */
+FF_Disk_t * FF_VirtIODiskInit( char * pcName,
+                               size_t xIOManagerCacheSize )
 {
-FF_Error_t xError;
-FF_Disk_t *pxDisk = NULL;
-FF_CreationParameters_t xParameters;
-void *virtio_mmio_base = (void *) VIRTIO_BLK_MMIO_ADDRESS;
-uint64_t ulCapacity = 0;
-uint32_t ulSectorSize = 0;
-struct virtio_device* blk_dev = NULL;
+    FF_Error_t xError;
+    FF_Disk_t * pxDisk = NULL;
+    FF_CreationParameters_t xParameters;
+    void * virtio_mmio_base = ( void * ) VIRTIO_BLK_MMIO_ADDRESS;
+    uint64_t ulCapacity = 0;
+    uint32_t ulSectorSize = 0;
+    struct virtio_device * blk_dev = NULL;
 
     /* Check the validity of the xIOManagerCacheSize parameter. */
     configASSERT( ( xIOManagerCacheSize % virtio_blkSECTOR_SIZE ) == 0 );
     configASSERT( ( xIOManagerCacheSize >= ( 2 * virtio_blkSECTOR_SIZE ) ) );
 
-#ifdef __CHERI_PURE_CAPABILITY__
-    virtio_mmio_base = cheri_build_data_cap((ptraddr_t) virtio_mmio_base,
-                                            VIRTIO_BLK_MMIO_SIZE,
-                                            __CHERI_CAP_PERMISSION_GLOBAL__ |
-                                            __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
-                                            __CHERI_CAP_PERMISSION_PERMIT_STORE__);
-    cheri_print_cap(virtio_mmio_base);
-#endif
+    #ifdef __CHERI_PURE_CAPABILITY__
+        virtio_mmio_base = cheri_build_data_cap( ( ptraddr_t ) virtio_mmio_base,
+                                                 VIRTIO_BLK_MMIO_SIZE,
+                                                 __CHERI_CAP_PERMISSION_GLOBAL__ |
+                                                 __CHERI_CAP_PERMISSION_PERMIT_LOAD__ |
+                                                 __CHERI_CAP_PERMISSION_PERMIT_STORE__ );
+        cheri_print_cap( virtio_mmio_base );
+    #endif
 
-    blk_dev = virtio_setup_vd(virtio_mmio_base);
-    if ( blk_dev == NULL )
+    blk_dev = virtio_setup_vd( virtio_mmio_base );
+
+    if( blk_dev == NULL )
     {
-        FF_PRINTF("Failed to initialize virtio-blk device\n");
+        FF_PRINTF( "Failed to initialize virtio-blk device\n" );
         return NULL;
     }
 
     /* virtioblk_init return the sector size if succeeded */
-    ulSectorSize = virtioblk_init(blk_dev);
+    ulSectorSize = virtioblk_init( blk_dev );
 
     /* Read the capacity of the device which is the numbers of sectors */
-    ulCapacity = virtio_get_config(blk_dev,
-            offset_of(struct virtio_blk_cfg, capacity),
-            sizeof(ulCapacity));
+    ulCapacity = virtio_get_config( blk_dev,
+                                    offset_of( struct virtio_blk_cfg, capacity ),
+                                    sizeof( ulCapacity ) );
 
-    if ( ( ulSectorSize == 0 ) || (ulCapacity <= 0) )
+    if( ( ulSectorSize == 0 ) || ( ulCapacity <= 0 ) )
     {
         FF_PRINTF( "FF_VirtIODiskInit failed as device has %d:%d sectorSize:Capacity\n", ulSectorSize, ulCapacity );
         return NULL;
@@ -278,30 +290,30 @@ struct virtio_device* blk_dev = NULL;
     if( pxDisk != NULL )
     {
         /* It is advisable to clear the entire structure to zero after it has been
-        allocated – that way the media driver will be compatible with future
-        FreeRTOS+FAT versions, in which the FF_Disk_t structure may include
-        additional members. */
+         * allocated – that way the media driver will be compatible with future
+         * FreeRTOS+FAT versions, in which the FF_Disk_t structure may include
+         * additional members. */
         memset( pxDisk, 0, sizeof( FF_Disk_t ) );
 
         /* The pvTag member of the FF_Disk_t structure allows the structure to be
-        extended to also include media specific parameters.  The only media
-        specific data that needs to be stored in the FF_Disk_t structure for a
-        VirtIO disk is the location of the virtio_device struct – so this is stored
-        directly in the FF_Disk_t’s pvTag member. */
+         * extended to also include media specific parameters.  The only media
+         * specific data that needs to be stored in the FF_Disk_t structure for a
+         * VirtIO disk is the location of the virtio_device struct – so this is stored
+         * directly in the FF_Disk_t’s pvTag member. */
         pxDisk->pvTag = ( void * ) blk_dev;
 
         /* The signature is used by the disk read and disk write functions to
-        ensure the disk being accessed is a virtio-blk disk. */
-        pxDisk->ulSignature = 0x74726976; // "virt"
+         * ensure the disk being accessed is a virtio-blk disk. */
+        pxDisk->ulSignature = 0x74726976; /* "virt" */
 
         /* The number of sectors is recorded for bounds checking in the read and
-        write functions. */
+         * write functions. */
         pxDisk->ulNumberOfSectors = ulCapacity;
 
         /* Create the IO manager that will be used to control the VirtIO disk –
-        the FF_CreationParameters_t structure completed with the required
-        parameters, then passed into the FF_CreateIOManager() function. */
-        memset (&xParameters, 0, sizeof xParameters);
+         * the FF_CreationParameters_t structure completed with the required
+         * parameters, then passed into the FF_CreateIOManager() function. */
+        memset( &xParameters, 0, sizeof xParameters );
         xParameters.pucCacheMemory = NULL;
         xParameters.ulMemorySize = xIOManagerCacheSize;
         xParameters.ulSectorSize = ulSectorSize;
@@ -319,20 +331,20 @@ struct virtio_device* blk_dev = NULL;
             pxDisk->xStatus.bIsInitialised = pdTRUE;
 
             /* Create a partition on the VirtIO disk.  NOTE!  The disk is only
-            being partitioned here because it is a new VirtIO disk.  It is
-            known that the disk has not been used before, and cannot already
-            contain any partitions.  Most media drivers will not perform
-            this step because the media will already been partitioned and
-            formatted. */
-#if 1
-            /* FIXME: When using a pre-written disk image, comment this */
-            xError = prvPartitionAndFormatDisk( pxDisk );
-#endif
+             * being partitioned here because it is a new VirtIO disk.  It is
+             * known that the disk has not been used before, and cannot already
+             * contain any partitions.  Most media drivers will not perform
+             * this step because the media will already been partitioned and
+             * formatted. */
+            #if 1
+                /* FIXME: When using a pre-written disk image, comment this */
+                xError = prvPartitionAndFormatDisk( pxDisk );
+            #endif
 
             if( FF_isERR( xError ) == pdFALSE )
             {
                 /* Record the partition number the FF_Disk_t structure is, then
-                mount the partition. */
+                 * mount the partition. */
                 pxDisk->xStatus.bPartitionNumber = virtio_blkPARTITION_NUMBER;
 
                 /* Mount the partition. */
@@ -342,9 +354,9 @@ struct virtio_device* blk_dev = NULL;
             if( FF_isERR( xError ) == pdFALSE )
             {
                 /* The partition mounted successfully, add it to the virtual
-                file system – where it will appear as a directory off the file
-                system’s root directory. */
-                if ( FF_FS_Add( pcName, pxDisk ) == 0 )
+                 * file system – where it will appear as a directory off the file
+                 * system’s root directory. */
+                if( FF_FS_Add( pcName, pxDisk ) == 0 )
                 {
                     xError = pdTRUE;
                 }
@@ -353,7 +365,7 @@ struct virtio_device* blk_dev = NULL;
         else
         {
             /* The disk structure was allocated, but the disk’s IO manager could
-            not be allocated, so free the disk again. */
+             * not be allocated, so free the disk again. */
             FF_VirtIODiskDelete( pxDisk );
             pxDisk = NULL;
         }

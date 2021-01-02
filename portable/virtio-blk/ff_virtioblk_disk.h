@@ -33,8 +33,9 @@
 #ifndef FF_VIRTIO_BLK_DISK
 #define FF_VIRTIO_BLK_DISK
 
-BaseType_t FF_VirtIODiskShowPartition( FF_Disk_t *pxDisk );
-FF_Disk_t *FF_VirtIODiskInit( char *pcName, size_t xIOManagerCacheSize );
-BaseType_t FF_VirtIODiskDelete( FF_Disk_t *pxDisk );
+BaseType_t FF_VirtIODiskShowPartition( FF_Disk_t * pxDisk );
+FF_Disk_t * FF_VirtIODiskInit( char * pcName,
+                               size_t xIOManagerCacheSize );
+BaseType_t FF_VirtIODiskDelete( FF_Disk_t * pxDisk );
 
 #endif /* FF_VIRTIO_BLK_DISK */
