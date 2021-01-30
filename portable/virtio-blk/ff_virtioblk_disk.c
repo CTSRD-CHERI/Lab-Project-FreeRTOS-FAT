@@ -38,6 +38,7 @@
 #include <stdio.h>
 
 /* FreeRTOS+FAT includes. */
+#include "FreeRTOSConfig.h"
 #include "ff_headers.h"
 #include "ff_stdio.h"
 #include "ff_virtioblk_disk.h"
@@ -336,8 +337,7 @@ FF_Disk_t * FF_VirtIODiskInit( char * pcName,
              * contain any partitions.  Most media drivers will not perform
              * this step because the media will already been partitioned and
              * formatted. */
-            #if 1
-                /* FIXME: When using a pre-written disk image, comment this */
+            #ifndef configFF_FORMATTED_DISK_IMAGE
                 xError = prvPartitionAndFormatDisk( pxDisk );
             #endif
 
